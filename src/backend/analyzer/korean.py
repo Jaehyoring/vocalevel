@@ -1,36 +1,16 @@
 """
 한국어 형태소 분석기
-  - MeCab + mecab-ko-dic
+  - kiwipiepy (MeCab 의존성 없음, Docker 친화적)
   - TOPIK 레벨 매핑: TOPIC_level/topik_vocabulary_all_levels.csv
-
-환경변수:
-  KR_DIC_PATH : 한국어 사전 경로 (기본값: 로컬 mecab-ko-dic/)
-  KR_MECABRC  : 한국어 mecabrc 경로 (기본값: MECABRC 환경변수 사용)
-  MECABRC     : 공용 mecabrc 경로 (기본값: 자동 탐지)
 """
 import os
 import csv
 import re
-import MeCab
+from kiwipiepy import Kiwi
 
 # ── 경로 설정 ──────────────────────────────────────────────────────
 BASE      = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 TOPIK_CSV = os.path.join(BASE, 'TOPIC_level', 'topik_vocabulary_all_levels.csv')
-
-# 한국어 사전: 환경변수 → 로컬 경로
-_kr_dic_env = os.environ.get('KR_DIC_PATH', '')
-DIC_PATH = _kr_dic_env if _kr_dic_env else os.path.join(BASE, 'mecab-ko-dic')
-
-# mecabrc: KR_MECABRC → MECABRC → 자동 탐지
-_mecabrc_env = os.environ.get('KR_MECABRC', os.environ.get('MECABRC', ''))
-if _mecabrc_env:
-    MECABRC = _mecabrc_env
-elif os.path.exists('/opt/homebrew/etc/mecabrc'):
-    MECABRC = '/opt/homebrew/etc/mecabrc'
-elif os.path.exists('/etc/mecabrc'):
-    MECABRC = '/etc/mecabrc'
-else:
-    MECABRC = ''
 
 # ── TOPIK 어휘 사전 로드 ───────────────────────────────────────────
 _topik: dict[str, str] = {}
@@ -50,21 +30,8 @@ def _load_topik() -> None:
 
 _load_topik()
 
-# ── MeCab Tagger 초기화 ───────────────────────────────────────────
-def _init_tagger() -> MeCab.Tagger:
-    dic = DIC_PATH
-    # 경로에 공백이 있으면 심볼릭 링크로 우회 (macOS 개발환경)
-    if ' ' in dic:
-        symlink = '/tmp/vocalevel_kr'
-        if not os.path.lexists(symlink):
-            os.symlink(os.path.dirname(dic), symlink)
-        dic = f'{symlink}/{os.path.basename(dic)}'
-    args = f'-d {dic}'
-    if MECABRC:
-        args = f'-r {MECABRC} ' + args
-    return MeCab.Tagger(args)
-
-_tagger = _init_tagger()
+# ── Kiwi 초기화 ───────────────────────────────────────────────────
+_kiwi = Kiwi()
 
 # ── 품사 태그 분류 ────────────────────────────────────────────────
 _GRAMMAR_TAGS = {
@@ -72,8 +39,9 @@ _GRAMMAR_TAGS = {
     'JX', 'JC',
     'EC', 'EF', 'EP', 'ETM', 'ETN',
     'XPN', 'XSN', 'XSV', 'XSA', 'XR',
-    'SF', 'SP', 'SS', 'SE', 'SO', 'SW', 'SY',
+    'SF', 'SP', 'SS', 'SE', 'SO', 'SW', 'SY', 'SB',
     'NF', 'NV', 'NA',
+    'W_URL', 'W_EMAIL', 'W_HASHTAG', 'W_MENTION',
 }
 
 _POS_LABEL = {
@@ -94,13 +62,12 @@ _POS_LABEL = {
     'SL': '외국어', 'SH': '한자', 'SN': '숫자',
 }
 
+_VERB_TAGS = {'VV', 'VA', 'VX', 'VCP', 'VCN'}
+
 # ── 레벨 조회 ─────────────────────────────────────────────────────
-def _lookup(surface: str, base: str, tag: str = '') -> tuple[str, bool]:
-    verb_tags = {'VV', 'VA', 'VX', 'VCP', 'VCN'}
-    candidates = [base, surface]
-    if tag in verb_tags and base and not base.endswith('다'):
-        candidates.append(base + '다')
-    if tag in verb_tags and surface and not surface.endswith('다'):
+def _lookup(surface: str, tag: str = '') -> tuple[str, bool]:
+    candidates = [surface]
+    if tag in _VERB_TAGS and not surface.endswith('다'):
         candidates.append(surface + '다')
 
     for key in candidates:
@@ -116,35 +83,42 @@ def _lookup(surface: str, base: str, tag: str = '') -> tuple[str, bool]:
 # ── 메인 분석 함수 ────────────────────────────────────────────────
 def analyze(text: str) -> list[dict]:
     tokens = []
-    node = _tagger.parseToNode(text)
-    while node:
-        sf = node.surface
+    result = _kiwi.tokenize(text)
+
+    for token in result:
+        sf = token.form
         if not sf:
-            node = node.next
             continue
 
-        feats = node.feature.split(',')
-        tag  = feats[0]
-        base = feats[3] if len(feats) > 3 else sf
+        # Tag enum → 문자열 변환
+        tag_raw = token.tag
+        tag = tag_raw.name if hasattr(tag_raw, 'name') else str(tag_raw)
+        if '.' in tag:
+            tag = tag.split('.')[-1]
 
         primary_tag = tag.split('+')[0]
         is_grammar  = primary_tag in _GRAMMAR_TAGS
         pos_label   = _POS_LABEL.get(primary_tag, primary_tag)
 
+        # 기본형: 동사·형용사 어간에 '다' 추가
+        if primary_tag in _VERB_TAGS and not sf.endswith('다'):
+            base = sf + '다'
+        else:
+            base = sf
+
         if is_grammar:
             level, in_list = pos_label, False
         else:
-            level, in_list = _lookup(sf, base, primary_tag)
+            level, in_list = _lookup(sf, primary_tag)
 
         tokens.append({
             'surface':    sf,
             'reading':    '',
-            'base_form':  base if base not in ('*', '') else sf,
+            'base_form':  base,
             'pos':        pos_label,
             'level':      level,
             'in_list':    in_list,
             'is_grammar': is_grammar,
         })
-        node = node.next
 
     return tokens
