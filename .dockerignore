@@ -1,0 +1,19 @@
+# macOS 컴파일 사전 제외 (Docker에서 재빌드)
+unidic-cwj-202302/
+mecab-ko-dic/
+handic/
+handic-mecab-20210116_src/
+
+# 개발 전용 파일
+server.py
+.claude/
+.git/
+.gitignore
+.DS_Store
+
+# Python 캐시
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/

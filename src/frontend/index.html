@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VocaLevel — 語彙レベルチェッカー</title>
+<style>
+/* ── RESET ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── VARIABLES ─────────────────────────────────────────────── */
+:root {
+  --bg:      #F8F9FA;
+  --surface: #FFFFFF;
+  --border:  #E5E7EB;
+  --border-focus: #6366F1;
+
+  --txt-1: #111827;
+  --txt-2: #374151;
+  --txt-3: #6B7280;
+  --txt-4: #9CA3AF;
+
+  --accent:   #6366F1;
+  --accent-h: #4F46E5;
+  --accent-bg: rgba(99,102,241,.07);
+
+  /* Level colors */
+  --n5: #16A34A; --n5-bg: #F0FDF4;
+  --n4: #65A30D; --n4-bg: #F7FEE7;
+  --n3: #D97706; --n3-bg: #FFFBEB;
+  --n2: #EA580C; --n2-bg: #FFF7ED;
+  --n1: #DC2626; --n1-bg: #FEF2F2;
+  --t6: #9333EA; --t6-bg: #FAF5FF;
+  --gram: #6B7280; --gram-bg: #F9FAFB;
+  --unk:  #9CA3AF; --unk-bg:  #F9FAFB;
+
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04);
+}
+
+/* ── BASE ──────────────────────────────────────────────────── */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--txt-1);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── HEADER ────────────────────────────────────────────────── */
+.hdr {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow);
+}
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo-ico {
+  width: 32px; height: 32px;
+  background: var(--accent-bg);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.logo-name {
+  font-size: 15px; font-weight: 700;
+  color: var(--txt-1);
+  letter-spacing: -.3px;
+}
+.logo-dot { color: var(--accent); }
+.hdr-right { display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 8px;
+  color: var(--txt-3);
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.icon-btn:hover { background: var(--bg); border-color: #D1D5DB; color: var(--txt-2); }
+
+/* ── MAIN ──────────────────────────────────────────────────── */
+main { max-width: 800px; margin: 0 auto; padding: 28px 16px 72px; }
+
+/* ── CARD ──────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+/* ── LANG TABS ─────────────────────────────────────────────── */
+.lang-tabs {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+.ltab {
+  padding: 5px 14px;
+  border: none; background: transparent;
+  color: var(--txt-3); font-size: 13px; font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 5px;
+}
+.ltab:hover { color: var(--txt-2); background: rgba(0,0,0,.04); }
+.ltab.on {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+/* ── TEXTAREA ──────────────────────────────────────────────── */
+.inp {
+  width: 100%; min-height: 110px; padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: 15px/1.7 inherit; resize: vertical;
+  background: var(--surface); color: var(--txt-1); outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.inp:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+.inp::placeholder { color: var(--txt-4); }
+
+.inp-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 10px; gap: 8px;
+}
+.inp-left { display: flex; align-items: center; gap: 8px; }
+.char-cnt { font-size: 12px; color: var(--txt-4); }
+.char-cnt span { color: var(--txt-3); font-weight: 500; }
+.sample-btns { display: flex; gap: 4px; }
+.sample-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--txt-3); font-size: 12px; font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer; transition: all .15s;
+}
+.sample-btn:hover {
+  border-color: #D1D5DB; background: var(--bg); color: var(--txt-2);
+}
+
+/* ── ANALYZE BUTTON ────────────────────────────────────────── */
+.btn-go {
+  padding: 8px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font: 600 13px/1 inherit;
+  letter-spacing: .2px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 1px 2px rgba(99,102,241,.25), 0 0 0 0 rgba(99,102,241,.0);
+  transition: background .15s, box-shadow .15s, transform .1s;
+}
+.btn-go:hover:not(:disabled) {
+  background: var(--accent-h);
+  box-shadow: 0 2px 8px rgba(99,102,241,.35);
+}
+.btn-go:active:not(:disabled) { transform: scale(.98); }
+.btn-go:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── SPINNER ───────────────────────────────────────────────── */
+.spinner {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── RESULT AREA ───────────────────────────────────────────── */
+.res-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+.res-title {
+  font-size: 14px; font-weight: 600; color: var(--txt-1);
+}
+.res-sub { font-size: 12px; color: var(--txt-3); margin-top: 2px; }
+
+.vtoggle {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 3px;
+  gap: 2px;
+}
+.vbtn {
+  padding: 4px 12px;
+  border: none; background: transparent;
+  color: var(--txt-3); font: 500 12px/1 inherit;
+  border-radius: 5px;
+  cursor: pointer; transition: all .15s;
+}
+.vbtn.on {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.vbtn:hover:not(.on) { color: var(--txt-2); }
+
+/* ── DETECT BADGE ──────────────────────────────────────────── */
+.detect-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 12px; margin-bottom: 16px;
+  background: var(--accent-bg);
+  border: 1px solid rgba(99,102,241,.18);
+  border-radius: 6px;
+  font-size: 12px; color: var(--txt-2);
+}
+.detect-badge b { color: var(--accent); font-weight: 600; }
+.detect-badge .dot-sep { color: var(--txt-4); }
+
+/* ── SUMMARY STATS ─────────────────────────────────────────── */
+.sum-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.sum-card {
+  flex: 1; min-width: 80px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.sum-val {
+  font-size: 26px; font-weight: 700;
+  color: var(--txt-1); letter-spacing: -1px; line-height: 1;
+}
+.sum-val.level { color: var(--accent); }
+.sum-lbl {
+  font-size: 10px; color: var(--txt-4); margin-top: 4px;
+  font-weight: 500; letter-spacing: .2px;
+  line-height: 1.5;
+}
+
+/* ── TOKEN DISPLAY ─────────────────────────────────────────── */
+.tok-wrap {
+  display: flex; flex-wrap: wrap; gap: 8px 4px; align-items: flex-start;
+  padding: 4px 0;
+}
+.tok {
+  display: flex; flex-direction: column; align-items: center;
+  cursor: default; position: relative; user-select: none;
+}
+.tok-sf {
+  padding: 4px 10px;
+  font-size: 16px; font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: transform .12s, box-shadow .12s;
+  line-height: 1.35; white-space: nowrap;
+}
+.tok:hover .tok-sf {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.tok-rd { font-size: 10px; color: var(--txt-4); margin-top: 2px; height: 13px; }
+.tok-lv {
+  font-size: 9px; font-weight: 700; margin-top: 2px;
+  padding: 1px 5px; border-radius: 3px;
+  letter-spacing: .3px;
+}
+.tok-pos {
+  font-size: 8px; color: var(--txt-4);
+  margin-top: 2px; white-space: nowrap;
+  max-width: 100px; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: .1px;
+}
+
+/* ── TOOLTIP ───────────────────────────────────────────────── */
+.ttp {
+  display: none; position: absolute;
+  bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--txt-1);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px; white-space: nowrap; z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+  pointer-events: none;
+}
+.ttp::after {
+  content: ''; position: absolute;
+  bottom: -5px; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--txt-1);
+  border-bottom: none;
+}
+.tok:hover .ttp { display: block; }
+.ttp-row { display: flex; gap: 10px; padding: 1.5px 0; }
+.ttp-k { color: rgba(255,255,255,.5); min-width: 80px; font-size: 10px; }
+.ttp-v { color: #fff; font-weight: 600; }
+
+/* ── LEVEL COLORS ──────────────────────────────────────────── */
+.lN5 .tok-sf,.lN5 .tok-lv { background:var(--n5-bg); color:var(--n5); border-color:rgba(22,163,74,.15); }
+.lN4 .tok-sf,.lN4 .tok-lv { background:var(--n4-bg); color:var(--n4); border-color:rgba(101,163,13,.15); }
+.lN3 .tok-sf,.lN3 .tok-lv { background:var(--n3-bg); color:var(--n3); border-color:rgba(217,119,6,.15); }
+.lN2 .tok-sf,.lN2 .tok-lv { background:var(--n2-bg); color:var(--n2); border-color:rgba(234,88,12,.15); }
+.lN1 .tok-sf,.lN1 .tok-lv { background:var(--n1-bg); color:var(--n1); border-color:rgba(220,38,38,.15); }
+.lT1 .tok-sf,.lT1 .tok-lv { background:var(--n5-bg); color:var(--n5); border-color:rgba(22,163,74,.15); }
+.lT2 .tok-sf,.lT2 .tok-lv { background:var(--n4-bg); color:var(--n4); border-color:rgba(101,163,13,.15); }
+.lT3 .tok-sf,.lT3 .tok-lv { background:var(--n3-bg); color:var(--n3); border-color:rgba(217,119,6,.15); }
+.lT4 .tok-sf,.lT4 .tok-lv { background:var(--n2-bg); color:var(--n2); border-color:rgba(234,88,12,.15); }
+.lT5 .tok-sf,.lT5 .tok-lv { background:var(--n1-bg); color:var(--n1); border-color:rgba(220,38,38,.15); }
+.lT6 .tok-sf,.lT6 .tok-lv { background:var(--t6-bg); color:var(--t6); border-color:rgba(147,51,234,.15); }
+.lGR .tok-sf,.lGR .tok-lv { background:var(--gram-bg); color:var(--gram); border-color:var(--border); }
+.lUK .tok-sf,.lUK .tok-lv { background:var(--unk-bg);  color:var(--unk);  border-color:var(--border); }
+
+/* ── STATS SECTION ─────────────────────────────────────────── */
+.stats-sec { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+.sec-lbl {
+  font-size: 11px; font-weight: 600; color: var(--txt-3);
+  text-transform: uppercase; letter-spacing: .8px;
+  margin-bottom: 10px;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12px; font-weight: 500;
+  color: var(--txt-2);
+  transition: border-color .15s;
+}
+.chip:hover { border-color: #D1D5DB; }
+.chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.chip-num { font-weight: 700; color: var(--txt-1); }
+.bar-chart { display: flex; flex-direction: column; gap: 7px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-lbl {
+  font-size: 11px; font-weight: 600; color: var(--txt-2);
+  min-width: 96px; text-align: right; white-space: nowrap;
+}
+.bar-track {
+  flex: 1; background: var(--border);
+  border-radius: 99px; height: 14px; overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 99px;
+  animation: barGrow .45s ease forwards;
+}
+@keyframes barGrow { from { width: 0; } }
+.bar-cnt {
+  font-size: 11px; font-weight: 700; color: var(--txt-2);
+  min-width: 18px; text-align: left;
+}
+
+/* ── TABLE VIEW ────────────────────────────────────────────── */
+.tok-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tok-tbl th {
+  text-align: left; padding: 7px 12px;
+  background: var(--bg);
+  color: var(--txt-3); font-size: 11px; font-weight: 600;
+  letter-spacing: .5px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.tok-tbl td { padding: 8px 12px; border-bottom: 1px solid var(--bg); color: var(--txt-2); }
+.tok-tbl tr:last-child td { border-bottom: none; }
+.tok-tbl tr:hover td { background: var(--bg); }
+.lv-pill {
+  display: inline-block; padding: 2px 7px;
+  font-size: 11px; font-weight: 700;
+  border-radius: 4px; letter-spacing: .3px;
+}
+.tbl-sf { font-size: 16px; font-weight: 600; color: var(--txt-1); }
+
+/* ── PLACEHOLDER ───────────────────────────────────────────── */
+.placeholder {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 48px 24px; gap: 10px;
+  color: var(--txt-4); text-align: center;
+}
+.placeholder-icon { font-size: 28px; opacity: .5; }
+.placeholder-text { font-size: 13px; color: var(--txt-4); }
+
+/* ── ERROR ─────────────────────────────────────────────────── */
+.error-msg {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px;
+  background: #FEF2F2; border: 1px solid #FECACA;
+  border-radius: 8px;
+  color: #DC2626; font-size: 13px;
+}
+
+/* ── ANIMATIONS ────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.fade-up { animation: fadeUp .2s ease forwards; }
+
+.tok { animation: tokenIn .18s ease backwards; }
+@keyframes tokenIn {
+  from { opacity:0; transform:scale(.9); }
+  to   { opacity:1; transform:scale(1); }
+}
+
+/* ── FOOTER ────────────────────────────────────────────────── */
+footer {
+  text-align: center; padding: 20px 16px;
+  font-size: 11px; color: var(--txt-4);
+  border-top: 1px solid var(--border);
+  max-width: 800px; margin: 0 auto;
+}
+
+/* ── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  main { padding: 14px 12px 48px; }
+  .card { padding: 16px; }
+  .tok-sf { font-size: 14px; }
+  .sum-val { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo">
+    <div class="logo-ico">📚</div>
+    <span class="logo-name">Voca<span class="logo-dot">Level</span></span>
+  </div>
+  <div class="hdr-right">
+    <button class="icon-btn" id="darkBtn" onclick="toggleTheme()" title="다크 모드">🌙</button>
+  </div>
+</header>
+
+<main>
+  <!-- INPUT -->
+  <div class="card">
+    <div class="lang-tabs">
+      <button class="ltab on" id="ltab-auto" onclick="setLang('auto')">🤖 자동 / 自動</button>
+      <button class="ltab"    id="ltab-jp"   onclick="setLang('jp')">🇯🇵 일본어 / 日本語</button>
+      <button class="ltab"    id="ltab-kr"   onclick="setLang('kr')">🇰🇷 한국어 / 韓国語</button>
+    </div>
+    <textarea class="inp" id="inp" oninput="cntUpd()"
+      placeholder="분석할 텍스트를 입력하세요 / 分析するテキストを入力してください"></textarea>
+    <div class="inp-foot">
+      <div class="inp-left">
+        <span class="char-cnt"><span id="cntN">0</span> 글자 / 文字</span>
+        <div class="sample-btns">
+          <button class="sample-btn" onclick="loadSample('jp')">🇯🇵 샘플 / サンプル</button>
+          <button class="sample-btn" onclick="loadSample('kr')">🇰🇷 샘플 / サンプル</button>
+        </div>
+      </div>
+      <button class="btn-go" id="analyzeBtn" onclick="doAnalyze()">
+        분석 / 分析
+      </button>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="card" id="resCard">
+    <div class="res-hdr">
+      <div>
+        <div class="res-title">분석 결과 / 分析結果</div>
+        <div class="res-sub" id="res-sub">텍스트를 입력 후 분석 버튼 클릭 / テキストを入力して分析ボタンをクリック</div>
+      </div>
+      <div class="vtoggle" id="vtoggle" style="display:none">
+        <button class="vbtn on" id="vbtn-sent" onclick="setView('sent')">문장 / 文章</button>
+        <button class="vbtn"    id="vbtn-tbl"  onclick="setView('tbl')">표 / 表</button>
+      </div>
+    </div>
+
+    <div id="resBody">
+      <div class="placeholder">
+        <div class="placeholder-icon">📝</div>
+        <div class="placeholder-text">일본어 또는 한국어 텍스트를 입력 후 분석 버튼을 클릭하세요</div>
+        <div class="placeholder-text">日本語または韓国語のテキストを入力して分析ボタンをクリックしてください</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  VocaLevel v1.0 &nbsp;·&nbsp; MeCab + unidic-cwj-202302 / mecab-ko-dic &nbsp;·&nbsp; JLPT &amp; TOPIK 어휘 참조 / 語彙参照
+</footer>
+
+<script>
+/* ── 품사 한·일 병용 라벨 ─────────────────────────────── */
+const POS_BILINGUAL = {
+  // 일본어 unidic
+  '名詞':'명사 / 名詞',       '動詞':'동사 / 動詞',
+  '形容詞':'형용사 / 形容詞', '形状詞':'형상사 / 形状詞',
+  '副詞':'부사 / 副詞',       '助詞':'조사 / 助詞',
+  '助動詞':'조동사 / 助動詞', '接続詞':'접속사 / 接続詞',
+  '感動詞':'감동사 / 感動詞', '記号':'기호 / 記号',
+  '補助記号':'보조기호 / 補助記号', '接頭辞':'접두사 / 接頭辞',
+  '接尾辞':'접미사 / 接尾辞', '代名詞':'대명사 / 代名詞',
+  '空白':'공백 / 空白',
+  // 한국어 mecab-ko-dic
+  'NNG':'일반명사 / 普通名詞', 'NNP':'고유명사 / 固有名詞',
+  'NNB':'의존명사 / 依存名詞', 'NR':'수사 / 数詞',
+  'NP':'대명사 / 代名詞',      'VV':'동사 / 動詞',
+  'VA':'형용사 / 形容詞',      'VX':'보조용언 / 補助用言',
+  'VCP':'지정사 / 指定詞',     'VCN':'지정사 / 指定詞',
+  'MM':'관형사 / 冠形詞',      'MAG':'부사 / 副詞',
+  'MAJ':'접속부사 / 接続副詞', 'IC':'감탄사 / 感嘆詞',
+  'JKS':'주격조사 / 主格助詞', 'JKC':'보격조사 / 補格助詞',
+  'JKG':'관형격조사 / 属格助詞','JKO':'목적격조사 / 目的格助詞',
+  'JKB':'부사격조사 / 副詞格助詞','JKV':'호격조사 / 呼格助詞',
+  'JKQ':'인용격조사 / 引用助詞','JX':'보조사 / 補助助詞',
+  'JC':'접속조사 / 接続助詞',
+  'EP':'선어말어미 / 語幹末語尾','EF':'종결어미 / 終結語尾',
+  'EC':'연결어미 / 連結語尾',   'ETN':'명사형어미 / 名詞型語尾',
+  'ETM':'관형형어미 / 冠形型語尾',
+  'XPN':'접두사 / 接頭辞',     'XSN':'명사접미사 / 名詞接尾辞',
+  'XSV':'동사접미사 / 動詞接尾辞','XSA':'형용사접미사 / 形容詞接尾辞',
+  'XR':'어근 / 語根',
+  'SF':'마침표 / 句点',   'SP':'쉼표 / 読点',
+  'SS':'따옴표 / 引用符', 'SE':'줄임표 / 省略号',
+  'SO':'붙임표 / 連結符', 'SW':'기타기호 / その他記号',
+  'SB':'순서기호 / 順序記号','SL':'외국어 / 外来語',
+  'SH':'한자 / 漢字',     'SN':'수 / 数字',
+};
+
+/* ── 레벨 라벨 한·일 병용 ─────────────────────────────── */
+const LV_DISPLAY = {
+  '조사':'조사 / 助詞',         '助詞':'조사 / 助詞',
+  '조동사':'조동사 / 助動詞',   '助動詞':'조동사 / 助動詞',
+  '기호':'기호 / 記号',         '記号':'기호 / 記号',
+  '미등재':'미등록 / 未登録',   '未登録':'미등록 / 未登録',
+};
+
+function getPOS(pos) { return POS_BILINGUAL[pos] || pos; }
+function getLv(lv)   { return LV_DISPLAY[lv]     || lv; }
+
+const SAMPLES = {
+  jp: '私は毎日東京の大学で日本語と韓国語を勉強しています。',
+  kr: '저는 매일 서울에서 한국어와 일본어를 공부하고 있어요.',
+};
+const LV_CLS = {
+  'N5':'lN5','N4':'lN4','N3':'lN3','N2':'lN2','N1':'lN1',
+  '1급':'lT1','2급':'lT2','3급':'lT3','4급':'lT4','5급':'lT5','6급':'lT6',
+};
+const LV_COLOR = {
+  'N5':'#16A34A','N4':'#65A30D','N3':'#D97706','N2':'#EA580C','N1':'#DC2626',
+  '1급':'#16A34A','2급':'#65A30D','3급':'#D97706','4급':'#EA580C','5급':'#DC2626','6급':'#9333EA',
+};
+const LV_BG = {
+  'N5':'#F0FDF4','N4':'#F7FEE7','N3':'#FFFBEB','N2':'#FFF7ED','N1':'#FEF2F2',
+  '1급':'#F0FDF4','2급':'#F7FEE7','3급':'#FFFBEB','4급':'#FFF7ED','5급':'#FEF2F2','6급':'#FAF5FF',
+};
+const JP_ORDER = ['N5','N4','N3','N2','N1'];
+const KR_ORDER = ['1급','2급','3급','4급','5급','6급'];
+
+let currentLang = 'auto', currentView = 'sent', darkMode = false, lastResult = null;
+
+function setLang(lang) {
+  currentLang = lang;
+  ['auto','jp','kr'].forEach(l => document.getElementById(`ltab-${l}`).classList.remove('on'));
+  document.getElementById(`ltab-${lang}`).classList.add('on');
+}
+function setView(v) {
+  currentView = v;
+  ['sent','tbl'].forEach(x => document.getElementById(`vbtn-${x}`).classList.remove('on'));
+  document.getElementById(`vbtn-${v}`).classList.add('on');
+  if (lastResult) renderResult(lastResult);
+}
+function toggleTheme() {
+  darkMode = !darkMode;
+  const r = document.documentElement;
+  if (darkMode) {
+    r.style.setProperty('--bg',      '#111827');
+    r.style.setProperty('--surface', '#1F2937');
+    r.style.setProperty('--border',  '#374151');
+    r.style.setProperty('--txt-1',   '#F9FAFB');
+    r.style.setProperty('--txt-2',   '#E5E7EB');
+    r.style.setProperty('--txt-3',   '#9CA3AF');
+    r.style.setProperty('--txt-4',   '#6B7280');
+    r.style.setProperty('--accent-bg','rgba(99,102,241,.15)');
+    document.getElementById('darkBtn').textContent = '☀️';
+  } else {
+    r.style.setProperty('--bg',      '#F8F9FA');
+    r.style.setProperty('--surface', '#FFFFFF');
+    r.style.setProperty('--border',  '#E5E7EB');
+    r.style.setProperty('--txt-1',   '#111827');
+    r.style.setProperty('--txt-2',   '#374151');
+    r.style.setProperty('--txt-3',   '#6B7280');
+    r.style.setProperty('--txt-4',   '#9CA3AF');
+    r.style.setProperty('--accent-bg','rgba(99,102,241,.07)');
+    document.getElementById('darkBtn').textContent = '🌙';
+  }
+}
+function cntUpd() {
+  document.getElementById('cntN').textContent = document.getElementById('inp').value.length;
+}
+function loadSample(lang) {
+  document.getElementById('inp').value = SAMPLES[lang]; cntUpd(); setLang(lang);
+}
+
+async function doAnalyze() {
+  const text = document.getElementById('inp').value.trim();
+  if (!text) { showError('텍스트를 입력해주세요 / テキストを入力してください'); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> 분석 중 / 解析中...';
+  document.getElementById('resBody').innerHTML =
+    '<div class="placeholder"><div class="placeholder-icon">⏳</div>' +
+    '<div class="placeholder-text">형태소 분석 중 / 形態素解析中...</div></div>';
+  document.getElementById('vtoggle').style.display = 'none';
+  document.getElementById('res-sub').textContent = '';
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, lang: currentLang }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Server error');
+    lastResult = data;
+    renderResult(data);
+    document.getElementById('vtoggle').style.display = 'flex';
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '분석 / 分析';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('resBody').innerHTML =
+    `<div class="error-msg">⚠️ ${msg}</div>`;
+}
+
+function renderResult(data) {
+  const { detected_lang, tokens, stats } = data;
+  const isJP     = detected_lang === 'ja';
+  const order    = isJP ? JP_ORDER : KR_ORDER;
+  const langLabel = isJP ? '🇯🇵 日本語 / 일본어' : '🇰🇷 한국어 / 韓国語';
+  const refLabel  = isJP ? 'JLPT 기준 / JLPT基準' : 'TOPIK 기준 / TOPIK基準';
+  const maxColor  = LV_COLOR[stats.max_level] || '#6366F1';
+
+  document.getElementById('res-sub').textContent = '토큰 위에 커서를 올리면 상세 정보 표시 / トークンにカーソルを合わせると詳細表示';
+
+  let html = `
+    <div class="detect-badge fade-up">
+      <b>${langLabel}</b>
+      <span class="dot-sep">·</span>
+      <span>${refLabel} 어휘 분석 / 語彙分析</span>
+    </div>
+    <div class="sum-row fade-up">
+      <div class="sum-card">
+        <div class="sum-val">${stats.total}</div>
+        <div class="sum-lbl">전체 토큰<br>全トークン</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-val">${stats.content_words}</div>
+        <div class="sum-lbl">내용어<br>内容語</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-val">${stats.in_list}</div>
+        <div class="sum-lbl">사전 일치<br>辞書一致</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-val level" style="color:${maxColor}">${stats.max_level}</div>
+        <div class="sum-lbl">최고 레벨<br>最高レベル</div>
+      </div>
+    </div>`;
+
+  html += currentView === 'sent' ? buildSentView(tokens, isJP) : buildTableView(tokens, isJP);
+  html += buildStats(stats, order);
+  document.getElementById('resBody').innerHTML = html;
+  document.querySelectorAll('.tok').forEach((el, i) => {
+    el.style.animationDelay = `${i * 22}ms`;
+  });
+}
+
+function buildSentView(tokens, isJP) {
+  let html = '<div class="tok-wrap fade-up">';
+  tokens.forEach(t => {
+    const cls = LV_CLS[t.level] || (t.is_grammar ? 'lGR' : 'lUK');
+    const col = LV_COLOR[t.level] || (t.is_grammar ? '#6B7280' : '#9CA3AF');
+    const rdRow = isJP && t.reading
+      ? `<div class="ttp-row"><span class="ttp-k">読み / 읽기</span><span class="ttp-v">${t.reading}</span></div>` : '';
+    const lvDisplay = t.in_list ? getLv(t.level) : '—';
+    html += `
+      <div class="tok ${cls}">
+        <div class="tok-sf">${t.surface}</div>
+        ${isJP && t.reading ? `<div class="tok-rd">${t.reading}</div>` : '<div class="tok-rd"></div>'}
+        <div class="tok-lv">${lvDisplay}</div>
+        <div class="tok-pos">${getPOS(t.pos)}</div>
+        <div class="ttp">
+          ${rdRow}
+          <div class="ttp-row"><span class="ttp-k">기본형 / 基本形</span><span class="ttp-v">${t.base_form}</span></div>
+          <div class="ttp-row"><span class="ttp-k">품사 / 品詞</span><span class="ttp-v">${getPOS(t.pos)}</span></div>
+          <div class="ttp-row"><span class="ttp-k">레벨 / レベル</span><span class="ttp-v" style="color:${col}">${getLv(t.level)}</span></div>
+        </div>
+      </div>`;
+  });
+  return html + '</div>';
+}
+
+function buildTableView(tokens, isJP) {
+  const rdCol = isJP ? '<th>읽기 / 読み</th>' : '';
+  let html = `
+    <table class="tok-tbl fade-up">
+      <thead><tr><th>#</th><th>토큰 / トークン</th>${rdCol}<th>품사 / 品詞</th><th>기본형 / 基本形</th><th>레벨 / レベル</th></tr></thead>
+      <tbody>`;
+  tokens.forEach((t, i) => {
+    const col = LV_COLOR[t.level] || '#9CA3AF';
+    const bg  = LV_BG[t.level]   || '#F9FAFB';
+    const rdCell = isJP ? `<td>${t.reading || '—'}</td>` : '';
+    html += `<tr>
+      <td style="color:var(--txt-4);font-size:12px">${i + 1}</td>
+      <td class="tbl-sf">${t.surface}</td>
+      ${rdCell}
+      <td>${getPOS(t.pos)}</td>
+      <td>${t.base_form}</td>
+      <td><span class="lv-pill" style="background:${bg};color:${col}">${getLv(t.level)}</span></td>
+    </tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+function buildStats(stats, order) {
+  const counts = stats.by_level;
+  const maxCount = Math.max(...Object.values(counts));
+
+  // 어휘 레벨 행 (N5-N1 또는 1급-6급 순서)
+  const levelRows = order.filter(lv => counts[lv]);
+  // 문법·기타 행 (어휘 레벨에 없는 것, 알파벳/가나다 순)
+  const miscRows = Object.keys(counts)
+    .filter(lv => !order.includes(lv))
+    .sort();
+  const rows = [...levelRows, ...miscRows];
+
+  let bars = '';
+  rows.forEach(lv => {
+    const cnt = counts[lv];
+    const col = LV_COLOR[lv] || '#9CA3AF';
+    const pct = (cnt / maxCount * 100).toFixed(1);
+    bars += `<div class="bar-row">
+      <div class="bar-lbl">${getLv(lv)}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%;background:${col}"></div>
+      </div>
+      <div class="bar-cnt">${cnt}</div>
+    </div>`;
+  });
+
+  return `
+    <div class="stats-sec fade-up">
+      <div class="sec-lbl">레벨 분포 / レベル分布</div>
+      <div class="bar-chart">${bars}</div>
+    </div>`;
+}
+
+cntUpd();
+</script>
+</body>
+</html>
