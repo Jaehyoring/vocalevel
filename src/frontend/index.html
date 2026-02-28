@@ -358,6 +358,11 @@ main { max-width: 800px; margin: 0 auto; padding: 28px 16px 72px; }
   min-height: 48px;
 }
 .trans-loading { color: var(--txt-4); font-size: 13px; font-style: italic; }
+.trans-note {
+  margin-top: 6px;
+  font-size: 10px; color: var(--txt-4);
+  line-height: 1.6; letter-spacing: .1px;
+}
 
 /* ── STATS SECTION ─────────────────────────────────────────── */
 .stats-sec { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
@@ -530,7 +535,7 @@ footer {
 </main>
 
 <footer>
-  VocaLevel v1.0 &nbsp;·&nbsp; MeCab + unidic-cwj-202302 / kiwipiepy &nbsp;·&nbsp; JLPT &amp; TOPIK 어휘 참조 / 語彙参照
+  VocaLevel v1.0 &nbsp;·&nbsp; MeCab + unidic-cwj-202302 / kiwipiepy &nbsp;·&nbsp; JLPT &amp; TOPIK 어휘 참조 / 語彙参照 &nbsp;·&nbsp; 릴리즈 2026년 2월 28일 / リリース 2026年2月28日
 </footer>
 
 <script>
@@ -757,6 +762,10 @@ function buildTranslationSection(isJP) {
       <div class="sec-lbl">${label}</div>
       <div class="trans-body">
         <span id="transBody" class="trans-loading">번역 중 / 翻訳中…</span>
+      </div>
+      <div class="trans-note">
+        번역 제공: Google 번역 (무료) &nbsp;/&nbsp; 翻訳提供: Google翻訳（無料）<br>
+        번역 결과는 참고용이며 실제 의미와 다를 수 있습니다. &nbsp;/&nbsp; 翻訳結果は参考用であり、実際の意味と異なる場合があります。
       </div>
     </div>`;
 }
