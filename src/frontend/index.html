@@ -181,6 +181,21 @@ main { max-width: 800px; margin: 0 auto; padding: 28px 16px 72px; }
 .btn-go:active:not(:disabled) { transform: scale(.98); }
 .btn-go:disabled { opacity: .45; cursor: not-allowed; }
 
+/* ── CSV BUTTON ────────────────────────────────────────────── */
+.btn-csv {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--txt-3);
+  font: 500 12px/1 inherit;
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn-csv:hover { border-color: #D1D5DB; background: var(--bg); color: var(--txt-2); }
+
 /* ── SPINNER ───────────────────────────────────────────────── */
 .spinner {
   width: 13px; height: 13px;
@@ -200,6 +215,8 @@ main { max-width: 800px; margin: 0 auto; padding: 28px 16px 72px; }
   font-size: 14px; font-weight: 600; color: var(--txt-1);
 }
 .res-sub { font-size: 12px; color: var(--txt-3); margin-top: 2px; }
+
+.res-controls { display: flex; align-items: center; gap: 6px; }
 
 .vtoggle {
   display: flex;
@@ -328,6 +345,19 @@ main { max-width: 800px; margin: 0 auto; padding: 28px 16px 72px; }
 .lT6 .tok-sf,.lT6 .tok-lv { background:var(--t6-bg); color:var(--t6); border-color:rgba(147,51,234,.15); }
 .lGR .tok-sf,.lGR .tok-lv { background:var(--gram-bg); color:var(--gram); border-color:var(--border); }
 .lUK .tok-sf,.lUK .tok-lv { background:var(--unk-bg);  color:var(--unk);  border-color:var(--border); }
+
+/* ── TRANSLATION ───────────────────────────────────────────── */
+.trans-sec { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+.trans-body {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 15px; line-height: 1.8;
+  color: var(--txt-1);
+  min-height: 48px;
+}
+.trans-loading { color: var(--txt-4); font-size: 13px; font-style: italic; }
 
 /* ── STATS SECTION ─────────────────────────────────────────── */
 .stats-sec { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
@@ -480,9 +510,12 @@ footer {
         <div class="res-title">분석 결과 / 分析結果</div>
         <div class="res-sub" id="res-sub">텍스트를 입력 후 분석 버튼 클릭 / テキストを入力して分析ボタンをクリック</div>
       </div>
-      <div class="vtoggle" id="vtoggle" style="display:none">
-        <button class="vbtn on" id="vbtn-sent" onclick="setView('sent')">문장 / 文章</button>
-        <button class="vbtn"    id="vbtn-tbl"  onclick="setView('tbl')">표 / 表</button>
+      <div class="res-controls">
+        <button class="btn-csv" id="csvBtn" onclick="downloadCSV()" style="display:none">⬇ CSV</button>
+        <div class="vtoggle" id="vtoggle" style="display:none">
+          <button class="vbtn on" id="vbtn-sent" onclick="setView('sent')">문장 / 文章</button>
+          <button class="vbtn"    id="vbtn-tbl"  onclick="setView('tbl')">표 / 表</button>
+        </div>
       </div>
     </div>
 
@@ -497,7 +530,7 @@ footer {
 </main>
 
 <footer>
-  VocaLevel v1.0 &nbsp;·&nbsp; MeCab + unidic-cwj-202302 / mecab-ko-dic &nbsp;·&nbsp; JLPT &amp; TOPIK 어휘 참조 / 語彙参照
+  VocaLevel v1.0 &nbsp;·&nbsp; MeCab + unidic-cwj-202302 / kiwipiepy &nbsp;·&nbsp; JLPT &amp; TOPIK 어휘 참조 / 語彙参照
 </footer>
 
 <script>
@@ -512,7 +545,7 @@ const POS_BILINGUAL = {
   '補助記号':'보조기호 / 補助記号', '接頭辞':'접두사 / 接頭辞',
   '接尾辞':'접미사 / 接尾辞', '代名詞':'대명사 / 代名詞',
   '空白':'공백 / 空白',
-  // 한국어 mecab-ko-dic
+  // 한국어
   'NNG':'일반명사 / 普通名詞', 'NNP':'고유명사 / 固有名詞',
   'NNB':'의존명사 / 依存名詞', 'NR':'수사 / 数詞',
   'NP':'대명사 / 代名詞',      'VV':'동사 / 動詞',
@@ -536,6 +569,15 @@ const POS_BILINGUAL = {
   'SO':'붙임표 / 連結符', 'SW':'기타기호 / その他記号',
   'SB':'순서기호 / 順序記号','SL':'외국어 / 外来語',
   'SH':'한자 / 漢字',     'SN':'수 / 数字',
+  // kiwipiepy 품사 한글 레이블
+  '명사':'명사 / 名詞', '고유명사':'고유명사 / 固有名詞',
+  '동사':'동사 / 動詞', '형용사':'형용사 / 形容詞',
+  '부사':'부사 / 副詞', '조사':'조사 / 助詞',
+  '어미':'어미 / 語尾', '지정사':'지정사 / 指定詞',
+  '보조용언':'보조용언 / 補助用言', '감탄사':'감탄사 / 感嘆詞',
+  '접두사':'접두사 / 接頭辞', '접미사':'접미사 / 接尾辞',
+  '기호':'기호 / 記号', '숫자':'숫자 / 数字',
+  '외국어':'외국어 / 外来語', '한자':'한자 / 漢字',
 };
 
 /* ── 레벨 라벨 한·일 병용 ─────────────────────────────── */
@@ -568,7 +610,8 @@ const LV_BG = {
 const JP_ORDER = ['N5','N4','N3','N2','N1'];
 const KR_ORDER = ['1급','2급','3급','4급','5급','6급'];
 
-let currentLang = 'auto', currentView = 'sent', darkMode = false, lastResult = null;
+let currentLang = 'auto', currentView = 'sent', darkMode = false;
+let lastResult = null, lastOriginalText = '', lastTranslation = null;
 
 function setLang(lang) {
   currentLang = lang;
@@ -613,6 +656,7 @@ function loadSample(lang) {
   document.getElementById('inp').value = SAMPLES[lang]; cntUpd(); setLang(lang);
 }
 
+/* ── 분석 실행 ────────────────────────────────────────── */
 async function doAnalyze() {
   const text = document.getElementById('inp').value.trim();
   if (!text) { showError('텍스트를 입력해주세요 / テキストを入力してください'); return; }
@@ -624,7 +668,9 @@ async function doAnalyze() {
     '<div class="placeholder"><div class="placeholder-icon">⏳</div>' +
     '<div class="placeholder-text">형태소 분석 중 / 形態素解析中...</div></div>';
   document.getElementById('vtoggle').style.display = 'none';
+  document.getElementById('csvBtn').style.display = 'none';
   document.getElementById('res-sub').textContent = '';
+  lastTranslation = null;
 
   try {
     const resp = await fetch('/api/analyze', {
@@ -635,8 +681,10 @@ async function doAnalyze() {
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Server error');
     lastResult = data;
+    lastOriginalText = text;
     renderResult(data);
     document.getElementById('vtoggle').style.display = 'flex';
+    document.getElementById('csvBtn').style.display = 'flex';
   } catch (e) {
     showError(e.message);
   } finally {
@@ -650,6 +698,7 @@ function showError(msg) {
     `<div class="error-msg">⚠️ ${msg}</div>`;
 }
 
+/* ── 결과 렌더링 ──────────────────────────────────────── */
 function renderResult(data) {
   const { detected_lang, tokens, stats } = data;
   const isJP     = detected_lang === 'ja';
@@ -686,13 +735,95 @@ function renderResult(data) {
     </div>`;
 
   html += currentView === 'sent' ? buildSentView(tokens, isJP) : buildTableView(tokens, isJP);
+  html += buildTranslationSection(isJP);
   html += buildStats(stats, order);
+
   document.getElementById('resBody').innerHTML = html;
   document.querySelectorAll('.tok').forEach((el, i) => {
     el.style.animationDelay = `${i * 22}ms`;
   });
+
+  // 번역 비동기 로드
+  loadTranslation(detected_lang);
 }
 
+/* ── 번역 섹션 HTML ───────────────────────────────────── */
+function buildTranslationSection(isJP) {
+  const label = isJP
+    ? '🇰🇷 한국어 번역 / 韓国語翻訳'
+    : '🇯🇵 일본어 번역 / 日本語翻訳';
+  return `
+    <div class="trans-sec fade-up">
+      <div class="sec-lbl">${label}</div>
+      <div class="trans-body">
+        <span id="transBody" class="trans-loading">번역 중 / 翻訳中…</span>
+      </div>
+    </div>`;
+}
+
+/* ── Google Translate 호출 ────────────────────────────── */
+async function fetchGoogleTranslation(text, fromLang) {
+  const toLang = fromLang === 'ja' ? 'ko' : 'ja';
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${fromLang}&tl=${toLang}&dt=t&q=${encodeURIComponent(text)}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Translation request failed');
+  const data = await resp.json();
+  return data[0].map(seg => seg[0]).join('');
+}
+
+async function loadTranslation(lang) {
+  const el = document.getElementById('transBody');
+  if (!el) return;
+
+  // 캐시된 번역 사용 (뷰 토글 시 재활용)
+  if (lastTranslation !== null) {
+    el.className = '';
+    el.textContent = lastTranslation;
+    return;
+  }
+
+  try {
+    const translated = await fetchGoogleTranslation(lastOriginalText, lang);
+    lastTranslation = translated;
+    const el2 = document.getElementById('transBody');
+    if (el2) { el2.className = ''; el2.textContent = translated; }
+  } catch (e) {
+    const el2 = document.getElementById('transBody');
+    if (el2) { el2.className = 'trans-loading'; el2.textContent = '번역 불가 / 翻訳不可'; }
+  }
+}
+
+/* ── CSV 다운로드 ─────────────────────────────────────── */
+function downloadCSV() {
+  if (!lastResult) return;
+  const { detected_lang, tokens } = lastResult;
+  const isJP = detected_lang === 'ja';
+
+  const headers = isJP
+    ? ['표층형', '읽기', '기본형', '품사', '레벨', '사전일치']
+    : ['표층형', '기본형', '품사', '레벨', '사전일치'];
+
+  const rows = tokens.map(t => isJP
+    ? [t.surface, t.reading, t.base_form, t.pos, t.level, t.in_list ? 'O' : '']
+    : [t.surface, t.base_form, t.pos, t.level, t.in_list ? 'O' : '']
+  );
+
+  const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map(row => row.map(esc).join(',')).join('\n');
+
+  // UTF-8 BOM 추가 (Excel 한글/일본어 깨짐 방지)
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `vocalevel_${detected_lang}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ── 문장 뷰 ──────────────────────────────────────────── */
 function buildSentView(tokens, isJP) {
   let html = '<div class="tok-wrap fade-up">';
   tokens.forEach(t => {
@@ -718,6 +849,7 @@ function buildSentView(tokens, isJP) {
   return html + '</div>';
 }
 
+/* ── 표 뷰 ────────────────────────────────────────────── */
 function buildTableView(tokens, isJP) {
   const rdCol = isJP ? '<th>읽기 / 読み</th>' : '';
   let html = `
@@ -740,16 +872,12 @@ function buildTableView(tokens, isJP) {
   return html + '</tbody></table>';
 }
 
+/* ── 레벨 분포 바 차트 ────────────────────────────────── */
 function buildStats(stats, order) {
   const counts = stats.by_level;
   const maxCount = Math.max(...Object.values(counts));
-
-  // 어휘 레벨 행 (N5-N1 또는 1급-6급 순서)
   const levelRows = order.filter(lv => counts[lv]);
-  // 문법·기타 행 (어휘 레벨에 없는 것, 알파벳/가나다 순)
-  const miscRows = Object.keys(counts)
-    .filter(lv => !order.includes(lv))
-    .sort();
+  const miscRows  = Object.keys(counts).filter(lv => !order.includes(lv)).sort();
   const rows = [...levelRows, ...miscRows];
 
   let bars = '';
