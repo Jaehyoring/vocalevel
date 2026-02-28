@@ -404,6 +404,11 @@ main { max-width: 800px; margin: 0 auto; padding: 28px 16px 72px; }
   font-size: 11px; font-weight: 700; color: var(--txt-2);
   min-width: 18px; text-align: left;
 }
+.level-note {
+  margin-bottom: 10px;
+  font-size: 10px; color: var(--txt-4);
+  line-height: 1.6; letter-spacing: .1px;
+}
 
 /* ── TABLE VIEW ────────────────────────────────────────────── */
 .tok-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -889,6 +894,11 @@ function buildStats(stats, order) {
   const miscRows  = Object.keys(counts).filter(lv => !order.includes(lv)).sort();
   const rows = [...levelRows, ...miscRows];
 
+  const isJP = order === JP_ORDER;
+  const levelNote = isJP
+    ? 'JLPT: N5 (초급 / 初級) → N1 (고급 / 上級) &nbsp;·&nbsp; 숫자가 작을수록 고급 수준 / 数字が小さいほど上級レベル'
+    : 'TOPIK: 1급 (초급 / 初級) → 6급 (고급 / 上級) &nbsp;·&nbsp; 숫자가 클수록 고급 수준 / 数字が大きいほど上級レベル';
+
   let bars = '';
   rows.forEach(lv => {
     const cnt = counts[lv];
@@ -906,6 +916,7 @@ function buildStats(stats, order) {
   return `
     <div class="stats-sec fade-up">
       <div class="sec-lbl">레벨 분포 / レベル分布</div>
+      <div class="level-note">${levelNote}</div>
       <div class="bar-chart">${bars}</div>
     </div>`;
 }
